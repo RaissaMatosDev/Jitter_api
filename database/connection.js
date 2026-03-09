@@ -1,3 +1,4 @@
+//A conexão com o bd 
 const { Pool } = require("pg");
 
 const pool = new Pool({
@@ -7,6 +8,8 @@ const pool = new Pool({
     password: "root",
     port: 5432
 });
+
+// Coloquei este log para teste mas resolvi deixar
 pool.query('SELECT NOW()', (err, res) => {
     if (err) {
         console.error('Erro ao conectar no banco:', err);

@@ -30,7 +30,7 @@ exports.createOrder = async (req, res) => {
     );
 
     console.log("Pedido inserido:", orderResult.rows[0]);
-
+    //Aqui ocorre a corversão pedida no desafio proposto
         for (const item of data.items) {
     const productId = parseInt(item.idItem);
     const quantity = parseInt(item.quantidadeItem);
@@ -95,7 +95,7 @@ exports.getOrder = async (req, res) => {
 };
 
 // Atualiza o pedido
-// ROTA: Atualiza o pedido. Se não existir, ele cria (Upsert).
+// Se não existir cria o pedido
 exports.updateOrder = async (req, res) => {
   const orderId = req.params.id;
   const data = req.body;
@@ -104,7 +104,7 @@ exports.updateOrder = async (req, res) => {
   try {
     await client.query('BEGIN'); // Inicia transação para garantir segurança
 
-    // Upsert direto na tabela 'orders' (Cria ou Atualiza)
+    // Upsert direto na tabela orders (Cria ou Atualiza)
     await client.query(
       `INSERT INTO orders (orderid, value, creationdate) 
        VALUES ($1, $2, $3)
@@ -113,9 +113,9 @@ exports.updateOrder = async (req, res) => {
       [orderId, data.valorTotal, new Date(data.dataCriacao).toISOString()]
     );
 
-    // Atualiza os itens na tabela 'items'
+    // Atualiza os itens na tabela items
     for (const item of data.items) {
-      const productId = parseInt(item.idItem); // Converte para número
+      const productId = parseInt(item.idItem); // Conversão para número
       
       await client.query(
         `INSERT INTO items (orderid, productid, quantity, price)
