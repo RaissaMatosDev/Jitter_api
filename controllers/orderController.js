@@ -1,4 +1,5 @@
 console.log("!!! O CONTROLLER FOI CARREGADO COM SUCESSO !!!");
+
 // Importa a conexão com o banco de dados PostgreSQL
 const db = require("../database/connection");
 
@@ -28,7 +29,7 @@ exports.createOrder = async (req, res) => {
     [orderId, value, creationDate]
     );
 
-console.log("Pedido inserido:", orderResult.rows[0]);
+    console.log("Pedido inserido:", orderResult.rows[0]);
 
         for (const item of data.items) {
     const productId = parseInt(item.idItem);
@@ -90,10 +91,56 @@ exports.getOrder = async (req, res) => {
             error: error.message
         });
     }
+
+};
+
+// Atualiza o pedido
+// ROTA: Atualiza o pedido. Se não existir, ele cria (Upsert).
+exports.updateOrder = async (req, res) => {
+  const orderId = req.params.id;
+  const data = req.body;
+  const client = await db.connect(); // Abre conexão para realizar as queries
+
+  try {
+    await client.query('BEGIN'); // Inicia transação para garantir segurança
+
+    // Upsert direto na tabela 'orders' (Cria ou Atualiza)
+    await client.query(
+      `INSERT INTO orders (orderid, value, creationdate) 
+       VALUES ($1, $2, $3)
+       ON CONFLICT (orderid) DO UPDATE 
+       SET value = $2, creationdate = $3`,
+      [orderId, data.valorTotal, new Date(data.dataCriacao).toISOString()]
+    );
+
+    // Atualiza os itens na tabela 'items'
+    for (const item of data.items) {
+      const productId = parseInt(item.idItem); // Converte para número
+      
+      await client.query(
+        `INSERT INTO items (orderid, productid, quantity, price)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (orderid, productid) DO UPDATE
+         SET quantity = $3, price = $4`,
+        [orderId, productId, item.quantidadeItem, item.valorItem]
+      );
+    }
+
+    await client.query('COMMIT'); // Salva todas as alterações no banco
+    res.status(200).json({ message: "Pedido processado com sucesso!" });
+
+  } catch (err) {
+    await client.query('ROLLBACK'); // Desfaz tudo se der erro em qualquer lugar do código
+    console.error(err);
+    res.status(500).json({ message: "Erro ao atualizar ou criar o pedido" });
+  } finally {
+    client.release(); // Libera a conexão para o banco não travar
+  }
 };
 
 // deleta pedido
 exports.deleteOrder = async (req, res) => {
+  
     const id = req.params.id; // string
 
     try {
